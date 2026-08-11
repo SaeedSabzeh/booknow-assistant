@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "booknow"
+version = "0.2.0"
+description = "A tool-calling bookstore assistant built on the OpenAI Chat Completions API."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Saeed Sabzeh" }]
+keywords = ["llm", "openai", "function-calling", "tool-use", "gradio", "chatbot"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Intended Audience :: Developers",
+]
+dependencies = ["openai>=1.40", "python-dotenv>=1.0"]
+
+[project.optional-dependencies]
+ui = ["gradio>=4.44"]
+dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.6", "mypy>=1.11"]
+
+[project.scripts]
+booknow = "booknow.cli:main"
+booknow-app = "booknow.app:main"
+
+[project.urls]
+Homepage = "https://github.com/SaeedSabzeh/booknow-assistant"
+Issues = "https://github.com/SaeedSabzeh/booknow-assistant/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/booknow"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true

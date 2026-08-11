@@ -1,0 +1,22 @@
+[
+  {"title": "To Kill a Mockingbird", "author": "Harper Lee", "price_cents": 1599, "genre": "Fiction", "year": 1960, "stock": 12},
+  {"title": "1984", "author": "George Orwell", "price_cents": 1349, "genre": "Dystopian", "year": 1949, "stock": 30},
+  {"title": "Pride and Prejudice", "author": "Jane Austen", "price_cents": 1099, "genre": "Classic", "year": 1813, "stock": 8},
+  {"title": "The Great Gatsby", "author": "F. Scott Fitzgerald", "price_cents": 1499, "genre": "Classic", "year": 1925, "stock": 0},
+  {"title": "Moby-Dick", "author": "Herman Melville", "price_cents": 1750, "genre": "Classic", "year": 1851, "stock": 4},
+  {"title": "The Catcher in the Rye", "author": "J. D. Salinger", "price_cents": 1200, "genre": "Fiction", "year": 1951, "stock": 6},
+  {"title": "The Alchemist", "author": "Paulo Coelho", "price_cents": 1199, "genre": "Fiction", "year": 1988, "stock": 21},
+  {"title": "Brave New World", "author": "Aldous Huxley", "price_cents": 1375, "genre": "Dystopian", "year": 1932, "stock": 9},
+  {"title": "The Lord of the Rings", "author": "J. R. R. Tolkien", "price_cents": 2500, "genre": "Fantasy", "year": 1954, "stock": 5},
+  {"title": "Harry Potter and the Sorcerer's Stone", "author": "J. K. Rowling", "price_cents": 1999, "genre": "Fantasy", "year": 1997, "stock": 17},
+  {"title": "The Kite Runner", "author": "Khaled Hosseini", "price_cents": 1425, "genre": "Fiction", "year": 2003, "stock": 7},
+  {"title": "Sapiens: A Brief History of Humankind", "author": "Yuval Noah Harari", "price_cents": 2150, "genre": "History", "year": 2011, "stock": 14},
+  {"title": "Becoming", "author": "Michelle Obama", "price_cents": 1800, "genre": "Memoir", "year": 2018, "stock": 3},
+  {"title": "The Power of Habit", "author": "Charles Duhigg", "price_cents": 1649, "genre": "Psychology", "year": 2012, "stock": 11},
+  {"title": "Atomic Habits", "author": "James Clear", "price_cents": 1875, "genre": "Self-help", "year": 2018, "stock": 25},
+  {"title": "Educated", "author": "Tara Westover", "price_cents": 1549, "genre": "Memoir", "year": 2018, "stock": 6},
+  {"title": "The Silent Patient", "author": "Alex Michaelides", "price_cents": 1299, "genre": "Thriller", "year": 2019, "stock": 0},
+  {"title": "The Subtle Art of Not Giving a F*ck", "author": "Mark Manson", "price_cents": 1400, "genre": "Self-help", "year": 2016, "stock": 10},
+  {"title": "Thinking, Fast and Slow", "author": "Daniel Kahneman", "price_cents": 2250, "genre": "Psychology", "year": 2011, "stock": 13},
+  {"title": "The 7 Habits of Highly Effective People", "author": "Stephen R. Covey", "price_cents": 1949, "genre": "Self-help", "year": 1989, "stock": 2}
+]

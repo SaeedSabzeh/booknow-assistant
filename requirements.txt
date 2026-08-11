@@ -1,0 +1,5 @@
+# Convenience pin file for Colab / quick installs.
+# Prefer: pip install -e ".[ui,dev]"
+openai>=1.40
+python-dotenv>=1.0
+gradio>=4.44

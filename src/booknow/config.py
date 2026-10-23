@@ -6,6 +6,8 @@ import os
 from dataclasses import dataclass
 
 DEFAULT_MODEL = "gpt-4o-mini"
+DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
+DEFAULT_EMBEDDING_CACHE = "~/.cache/booknow/embeddings.json"
 
 # Values people commonly leave in place of a real key. Treat them as missing.
 _PLACEHOLDER_KEYS = {"api", "your-key-here", "sk-xxx", "changeme", "todo"}
@@ -32,6 +34,8 @@ class Settings:
     temperature: float = 0.2
     max_tool_rounds: int = 4
     request_timeout: float = 30.0
+    embedding_model: str = DEFAULT_EMBEDDING_MODEL
+    embedding_cache: str | None = DEFAULT_EMBEDDING_CACHE  # None disables the disk cache
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -50,4 +54,7 @@ class Settings:
             temperature=float(os.getenv("BOOKNOW_TEMPERATURE", "0.2")),
             max_tool_rounds=int(os.getenv("BOOKNOW_MAX_TOOL_ROUNDS", "4")),
             request_timeout=float(os.getenv("BOOKNOW_TIMEOUT", "30")),
+            embedding_model=os.getenv("BOOKNOW_EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL),
+            # Set but empty means "don't cache"; unset means the default location.
+            embedding_cache=os.getenv("BOOKNOW_EMBEDDING_CACHE", DEFAULT_EMBEDDING_CACHE) or None,
         )

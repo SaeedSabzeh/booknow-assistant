@@ -46,6 +46,7 @@ class Book:
     genre: str
     year: int
     stock: int = 0
+    blurb: str = ""
 
     @property
     def price(self) -> str:
@@ -56,6 +57,8 @@ class Book:
         return self.stock > 0
 
     def to_dict(self) -> dict:
+        # No blurb: list and search results would carry a paragraph per book into
+        # the prompt. Only recommendations, which need it to explain a match, add it.
         return {
             "title": self.title,
             "author": self.author,

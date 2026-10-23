@@ -5,8 +5,21 @@ from booknow.catalog import BookNotFoundError, load_default_catalog, normalize
 
 def test_bundled_catalog_loads():
     catalog = load_default_catalog()
-    assert len(catalog) == 20
+    assert len(catalog) == 100
     assert all(book.price.startswith("$") for book in catalog)
+
+
+def test_bundled_catalog_is_ready_for_retrieval():
+    """Every book needs a blurb to be found by meaning, and titles must be unique."""
+    catalog = load_default_catalog()
+    assert all(len(book.blurb) > 40 for book in catalog)
+    assert len({normalize(book.title) for book in catalog}) == len(catalog)
+
+
+def test_blurb_is_kept_out_of_list_payloads():
+    book = load_default_catalog().find("Dune")
+    assert book.blurb
+    assert "blurb" not in book.to_dict()
 
 
 @pytest.mark.parametrize(

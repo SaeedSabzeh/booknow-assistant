@@ -1,14 +1,18 @@
-"""Fake OpenAI client so the whole suite runs offline, with no API key."""
+"""Fake OpenAI client and embedder so the whole suite runs offline, with no API key."""
 
 from __future__ import annotations
 
+import hashlib
 import json
+import re
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
 
 from booknow.catalog import Catalog
+from booknow.retrieval import BookIndex
 
 
 @dataclass
@@ -110,3 +114,58 @@ def catalog() -> Catalog:
              "genre": "Psychology", "year": 2011, "stock": 13},
         ]
     )
+
+
+@dataclass
+class FakeEmbedder:
+    """Bag-of-words hashed into a fixed number of dimensions.
+
+    Texts that share content words get similar vectors, which is enough to make
+    ranking assertions meaningful while staying deterministic and offline.
+    """
+
+    model: str = "fake-embedding"
+    dims: int = 512
+    calls: list[list[str]] = field(default_factory=list)
+
+    def embed(self, texts: Sequence[str]) -> list[list[float]]:
+        self.calls.append(list(texts))
+        return [self._vector(text) for text in texts]
+
+    def _vector(self, text: str) -> list[float]:
+        vector = [0.0] * self.dims
+        for word in re.findall(r"[a-z]{4,}", text.lower()):
+            digest = hashlib.md5(word.encode()).digest()
+            vector[int.from_bytes(digest[:4], "big") % self.dims] += 1.0
+        return vector
+
+
+@pytest.fixture
+def shelf() -> Catalog:
+    """A small catalog with blurbs, for retrieval tests."""
+    return Catalog.from_records(
+        [
+            {"title": "The Martian", "author": "Andy Weir", "price_cents": 1599,
+             "genre": "Science Fiction", "year": 2011, "stock": 8,
+             "blurb": "An astronaut stranded on Mars uses science and engineering to survive."},
+            {"title": "Project Hail Mary", "author": "Andy Weir", "price_cents": 1999,
+             "genre": "Science Fiction", "year": 2021, "stock": 0,
+             "blurb": "A lone astronaut uses science to survive a desperate mission in space."},
+            {"title": "The Thursday Murder Club", "author": "Richard Osman",
+             "price_cents": 1599, "genre": "Mystery", "year": 2020, "stock": 12,
+             "blurb": "Pensioners in a retirement village investigate a cosy village murder."},
+            {"title": "Pride and Prejudice", "author": "Jane Austen", "price_cents": 1099,
+             "genre": "Classic", "year": 1813, "stock": 8,
+             "blurb": "A witty romance of manners, marriage and first impressions."},
+        ]
+    )
+
+
+@pytest.fixture
+def embedder() -> FakeEmbedder:
+    return FakeEmbedder()
+
+
+@pytest.fixture
+def index(shelf, embedder) -> BookIndex:
+    return BookIndex(shelf, embedder)

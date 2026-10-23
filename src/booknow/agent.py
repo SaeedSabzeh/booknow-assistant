@@ -1,6 +1,6 @@
 """The conversation loop.
 
-Three things make this loop non-trivial:
+Four things make this loop non-trivial:
 
   * A single response can contain several tool calls. The API requires one
     `tool` message per `tool_call_id`; answer only the first and the model
@@ -9,6 +9,8 @@ Three things make this loop non-trivial:
     until the model stops calling tools, capped to bound cost.
   * The client is injected, so the whole loop is testable offline against
     scripted responses instead of a live, paid, non-deterministic API.
+  * Retrieval is optional. With no index, recommend_books is not offered to
+    the model at all, rather than offered and then failing.
 """
 
 from __future__ import annotations
@@ -23,6 +25,7 @@ from typing import Any, Protocol
 
 from booknow.catalog import Catalog, load_default_catalog
 from booknow.config import Settings
+from booknow.retrieval import BookIndex
 from booknow.tools import dispatch, tool_schemas
 
 logger = logging.getLogger(__name__)
@@ -34,6 +37,9 @@ Rules:
   Never invent a price, a stock level, or a book the store does not carry.
 - If a tool reports the book was not found, say so plainly and offer the
   suggestions the tool returned.
+- For requests by mood, theme, plot or "something like X", use recommend_books.
+  Recommend only books it returns, and use each blurb to say in a few words why
+  it fits.
 - Prices are in USD and already formatted; repeat them exactly as given.
 - Keep replies short and warm: two or three sentences unless asked for a list.
 - If a question is unrelated to books or the store, say it's outside what you
@@ -88,6 +94,7 @@ class BookstoreAgent:
     client: ChatClient
     catalog: Catalog = field(default_factory=load_default_catalog)
     settings: Settings | None = None
+    index: BookIndex | None = None
     system_prompt: str = SYSTEM_PROMPT
     max_api_retries: int = 3
     tool_calls_made: list[str] = field(default_factory=list, init=False)
@@ -112,7 +119,7 @@ class BookstoreAgent:
             "temperature": self.temperature,
         }
         if with_tools:
-            kwargs["tools"] = tool_schemas()
+            kwargs["tools"] = tool_schemas(with_index=self.index is not None)
         last_error: Exception | None = None
         for attempt in range(self.max_api_retries):
             try:
@@ -139,7 +146,7 @@ class BookstoreAgent:
                 logger.warning("Model sent unparseable arguments for %s", name)
             self.tool_calls_made.append(name)
             logger.info("tool=%s args=%s", name, arguments)
-            payload = dispatch(name, arguments, self.catalog)
+            payload = dispatch(name, arguments, self.catalog, index=self.index)
             results.append(
                 {
                     "role": "tool",

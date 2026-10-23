@@ -8,6 +8,7 @@ import logging
 from booknow.agent import BookstoreAgent, build_client
 from booknow.catalog import load_default_catalog
 from booknow.config import MissingAPIKeyError, Settings
+from booknow.retrieval import build_index
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -27,8 +28,13 @@ def main(argv: list[str] | None = None) -> int:
         print(exc)
         return 1
 
+    client = build_client(settings)
+    catalog = load_default_catalog()
     agent = BookstoreAgent(
-        client=build_client(settings), catalog=load_default_catalog(), settings=settings
+        client=client,
+        catalog=catalog,
+        settings=settings,
+        index=build_index(client, catalog, settings.embedding_model, settings.embedding_cache),
     )
 
     if args.message:

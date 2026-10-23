@@ -89,3 +89,26 @@ def test_history_normalizes_tuples_and_dicts():
         {"role": "user", "content": "hi"}
     ]
     assert normalize_history(None) == []
+
+
+def test_recommendations_are_offered_only_with_an_index(shelf, index):
+    def offered(agent_index):
+        client = FakeClient(scripted=[text_response("hi")])
+        BookstoreAgent(client=client, catalog=shelf, index=agent_index).reply("hi")
+        return {t["function"]["name"] for t in client.calls[-1]["tools"]}
+
+    assert "recommend_books" not in offered(None)
+    assert "recommend_books" in offered(index)
+
+
+def test_recommendation_round_trip(shelf, index):
+    client = FakeClient(
+        scripted=[
+            tool_response(("recommend_books", {"like_title": "The Martian"})),
+            text_response("Try Project Hail Mary."),
+        ]
+    )
+    agent = BookstoreAgent(client=client, catalog=shelf, index=index)
+    assert agent.reply("something like the martian?") == "Try Project Hail Mary."
+    tool_msg = next(m for m in client.calls[-1]["messages"] if m["role"] == "tool")
+    assert json.loads(tool_msg["content"])["results"][0]["title"] == "Project Hail Mary"

@@ -15,9 +15,12 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from booknow.catalog import BookNotFoundError, Catalog
+
+if TYPE_CHECKING:
+    from booknow.retrieval import BookIndex
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +33,7 @@ class Tool:
     description: str
     parameters: dict[str, Any]
     fn: ToolFn
+    needs_index: bool = False
 
     def schema(self) -> dict[str, Any]:
         return {
@@ -45,9 +49,19 @@ class Tool:
 REGISTRY: dict[str, Tool] = {}
 
 
-def tool(name: str, description: str, parameters: dict[str, Any]) -> Callable[[ToolFn], ToolFn]:
+def tool(
+    name: str, description: str, parameters: dict[str, Any], needs_index: bool = False
+) -> Callable[[ToolFn], ToolFn]:
+    """Register a tool. With needs_index, it is called as fn(catalog, index, **args)."""
+
     def decorator(fn: ToolFn) -> ToolFn:
-        REGISTRY[name] = Tool(name=name, description=description, parameters=parameters, fn=fn)
+        REGISTRY[name] = Tool(
+            name=name,
+            description=description,
+            parameters=parameters,
+            fn=fn,
+            needs_index=needs_index,
+        )
         return fn
 
     return decorator
@@ -140,19 +154,72 @@ def check_stock(catalog: Catalog, title: str) -> dict[str, Any]:
     }
 
 
+@tool(
+    name="recommend_books",
+    description=(
+        "Recommend books by meaning, using each book's description. Use for "
+        "'something like X', moods, themes and plots: 'a cosy mystery', 'books "
+        "about grief', 'funny science fiction'. Pass like_title for books similar "
+        "to one the user names, query for what they describe, or both."
+    ),
+    parameters=_params(
+        {
+            "query": {"type": "string", "description": "What the user wants, in their words."},
+            "like_title": {
+                "type": "string",
+                "description": "A book the user liked; results will resemble it.",
+            },
+            "limit": {"type": "integer", "description": "Max results, default 5."},
+        }
+    ),
+    needs_index=True,
+)
+def recommend_books(
+    catalog: Catalog,
+    index: BookIndex,
+    query: str | None = None,
+    like_title: str | None = None,
+    limit: int = 5,
+) -> dict[str, Any]:
+    if not (query or like_title):
+        return {"error": "Pass query, like_title, or both."}
+    like = None
+    if like_title:
+        try:
+            like = catalog.find(like_title)
+        except BookNotFoundError as exc:
+            return {"found": False, "query": like_title, "did_you_mean": exc.suggestions}
+    matches = index.search(query=query, like=like, limit=limit)
+    return {
+        "query": query,
+        "like_title": like.title if like else None,
+        "results": [
+            {**m.book.to_dict(), "blurb": m.book.blurb, "score": round(m.score, 3)}
+            for m in matches
+        ],
+    }
+
+
 # --- dispatch -------------------------------------------------------------
 
-def tool_schemas() -> list[dict[str, Any]]:
-    return [t.schema() for t in REGISTRY.values()]
+def tool_schemas(with_index: bool = True) -> list[dict[str, Any]]:
+    """Schemas for the API. Without an index, tools that need one are not offered."""
+    return [t.schema() for t in REGISTRY.values() if with_index or not t.needs_index]
 
 
-def dispatch(name: str, arguments: dict[str, Any], catalog: Catalog) -> dict[str, Any]:
+def dispatch(
+    name: str, arguments: dict[str, Any], catalog: Catalog, index: BookIndex | None = None
+) -> dict[str, Any]:
     """Run a tool by name. Never raises: errors come back as data for the model."""
     entry = REGISTRY.get(name)
     if entry is None:
         logger.warning("Model called unknown tool %r", name)
         return {"error": f"Unknown tool {name!r}", "available_tools": sorted(REGISTRY)}
     try:
+        if entry.needs_index:
+            if index is None:
+                return {"error": f"{name} is unavailable: no search index is configured."}
+            return entry.fn(catalog, index, **arguments)
         return entry.fn(catalog, **arguments)
     except TypeError as exc:
         logger.warning("Bad arguments for %s: %s", name, exc)
